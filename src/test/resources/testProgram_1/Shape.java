@@ -1,3 +1,4 @@
+// two concrete implementations
 public interface Shape {
-    double area(); // multiple implementations
+    double area(); 
 }

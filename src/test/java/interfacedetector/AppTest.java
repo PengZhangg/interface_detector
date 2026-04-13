@@ -1,59 +1,25 @@
 package interfacedetector;
 
-import com.github.javaparser.StaticJavaParser;
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import org.junit.Test;
 
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 public class AppTest {
 
-    private Path resource(String filename) {
-        return Path.of("src/test/resources/testProgram_1/" + filename);
-    }
-
-    private boolean isInterface(String filename) throws Exception {
-        CompilationUnit cu = StaticJavaParser.parse(resource(filename));
-        ClassOrInterfaceDeclaration decl = cu.findFirst(ClassOrInterfaceDeclaration.class).orElseThrow();
-        return decl.isInterface();
-    }
+    private static final Path TEST_FOLDER = Path.of("src/test/resources/testProgram_1");
 
     @Test
-    public void abstractShapeIsNotInterface() throws Exception {
-        assertFalse(isInterface("AbstractShape.java"));
-    }
+    public void testImplementorCounts() throws Exception {
+        Map<String, List<String>> result = App.buildImplementorsMap(TEST_FOLDER);
 
-    @Test
-    public void bigMacIsNotInterface() throws Exception {
-        assertFalse(isInterface("BigMac.java"));
-    }
+        assertEquals(2, result.get("Shape").size());
 
-    @Test
-    public void circleIsNotInterface() throws Exception {
-        assertFalse(isInterface("Circle.java"));
-    }
-
-    @Test
-    public void rectangleIsNotInterface() throws Exception {
-        assertFalse(isInterface("Rectangle.java"));
-    }
-
-    @Test
-    public void hamburgerIsInterface() throws Exception {
-        assertTrue(isInterface("Hamburger.java"));
-    }
-
-    @Test
-    public void animalIsInterface() throws Exception {
-        assertTrue(isInterface("Animal.java"));
-    }
-
-    @Test
-    public void shapeIsInterface() throws Exception {
-        assertTrue(isInterface("Shape.java"));
+        assertEquals(1, result.get("Hamburger").size());
+        
+        assertEquals(0, result.get("Animal").size());
     }
 }

@@ -1,3 +1,4 @@
+// one concrete implementation
 public interface Hamburger {
-    String productString(); // one concrete implementation
+    String productString(); 
 }

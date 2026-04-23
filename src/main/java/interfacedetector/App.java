@@ -10,8 +10,9 @@ import java.nio.file.Path;
 
 public class App {
     public static void main(String[] args) {
-        Map<String, List<String>> interfaceImplementations= buildImplementorsMap(Path.of(args[0]));
+        Map<String, List<String>> interfaceImplementations = buildImplementorsMap(Path.of(args[0]));
 
+        System.out.println("Interfaces implemented: " + interfaceImplementations.size());
         for (var entry : interfaceImplementations.entrySet()) {
             System.out.println(entry.getKey() + " interface contains " + entry.getValue().size() + " implementations: "
                     + entry.getValue());
@@ -47,12 +48,13 @@ public class App {
                         interfaceImplementations.put(name, new ArrayList<>());
                     }
                 } else {
+                    String className = decl.getFullyQualifiedName().orElse(decl.getNameAsString());
                     for (var implementedType : decl.getImplementedTypes()) {
                         String ifaceName = implementedType.getNameAsString();
                         if (!interfaceImplementations.containsKey(ifaceName)) {
                             interfaceImplementations.put(ifaceName, new ArrayList<>());
                         }
-                        interfaceImplementations.get(ifaceName).add(decl.getNameAsString());
+                        interfaceImplementations.get(ifaceName).add(className);
                     }
                 }
             }

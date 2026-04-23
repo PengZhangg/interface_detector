@@ -12,6 +12,7 @@ public class AppTest {
 
     private static final Path TEST_FOLDER = Path.of("src/test/resources/testProgram_1");
     private static final Path TEST_FOLDER_2 = Path.of("src/test/resources/testProgram_2");
+    private static final Path TEST_FOLDER_3 = Path.of("src/test/resources/testProgram_3");
 
     // test basic concrete implementation
     @Test
@@ -35,5 +36,13 @@ public class AppTest {
         assertEquals(1, result.get("Swimmable").size());
 
         assertEquals(2, result.get("Driveable").size());
+    }
+
+    // tests that enums can implement interfaces
+    @Test
+    public void testImplementorCounts_program3() throws Exception {
+        Map<String, List<String>> result = App.buildImplementorsMap(TEST_FOLDER_3);
+
+        assertEquals(1, result.get("Week").size());
     }
 }

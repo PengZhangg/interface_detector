@@ -4,6 +4,7 @@ import java.util.*;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.EnumDeclaration;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,6 +59,16 @@ public class App {
                         }
                         interfaceImplementations.get(ifaceName).add(className);
                     }
+                }
+            }
+            for (EnumDeclaration decl : cu.findAll(EnumDeclaration.class)) {
+                String className = decl.getFullyQualifiedName().orElse(decl.getNameAsString());
+                for (var implementedType : decl.getImplementedTypes()) {
+                    String ifaceName = implementedType.getNameAsString();
+                    if (!interfaceImplementations.containsKey(ifaceName)) {
+                        interfaceImplementations.put(ifaceName, new ArrayList<>());
+                    }
+                    interfaceImplementations.get(ifaceName).add(className);
                 }
             }
         }

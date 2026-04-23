@@ -48,6 +48,8 @@ public class App {
                         interfaceImplementations.put(name, new ArrayList<>());
                     }
                 } else {
+                    if (decl.isAbstract()) continue;
+
                     String className = decl.getFullyQualifiedName().orElse(decl.getNameAsString());
                     for (var implementedType : decl.getImplementedTypes()) {
                         String ifaceName = implementedType.getNameAsString();

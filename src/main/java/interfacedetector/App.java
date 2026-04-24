@@ -11,16 +11,26 @@ import java.nio.file.Path;
 
 public class App {
     public static void main(String[] args) {
-        Map<String, List<String>> interfaceImplementations = buildImplementorsMap(Path.of(args[0]));
+        Map<String, List<String>> concreteImpl = new HashMap<>();
+        Map<String, List<String>> abstractImpl = new HashMap<>();
 
-        System.out.println("Interfaces implemented: " + interfaceImplementations.size());
-        for (var entry : interfaceImplementations.entrySet()) {
-            System.out.println(entry.getKey() + " interface contains " + entry.getValue().size() + " implementations: "
-                    + entry.getValue());
+        buildImplementorsMaps(Path.of(args[0]), concreteImpl, abstractImpl);
+
+        System.out.println("=== Concrete Implementations ===");
+        for (var entry : concreteImpl.entrySet()) {
+            if (!entry.getValue().isEmpty())
+                System.out.println(entry.getKey() + ": " + entry.getValue());
+        }
+
+        System.out.println("\n=== Abstract Implementations ===");
+        for (var entry : abstractImpl.entrySet()) {
+            if (!entry.getValue().isEmpty())
+                System.out.println(entry.getKey() + ": " + entry.getValue());
         }
     }
 
-    public static Map<String, List<String>> buildImplementorsMap(Path folder) {
+    public static void buildImplementorsMaps(Path folder,
+            Map<String, List<String>> concreteImpl, Map<String, List<String>> abstractImpl) {
         List<Path> javaFiles;
 
         try {
@@ -29,10 +39,8 @@ public class App {
                     .toList();
         } catch (Exception e) {
             System.err.println("Error walking folder: " + folder + ": " + e.getMessage());
-            return new HashMap<>();
+            return;
         }
-
-        Map<String, List<String>> interfaceImplementations = new HashMap<>();
 
         for (Path file : javaFiles) {
             CompilationUnit cu;
@@ -45,19 +53,15 @@ public class App {
             for (ClassOrInterfaceDeclaration decl : cu.findAll(ClassOrInterfaceDeclaration.class)) {
                 if (decl.isInterface()) {
                     String name = decl.getNameAsString();
-                    if (!interfaceImplementations.containsKey(name)) {
-                        interfaceImplementations.put(name, new ArrayList<>());
-                    }
+                    concreteImpl.putIfAbsent(name, new ArrayList<>());
+                    abstractImpl.putIfAbsent(name, new ArrayList<>());
                 } else {
-                    if (decl.isAbstract()) continue;
-
                     String className = decl.getFullyQualifiedName().orElse(decl.getNameAsString());
+                    Map<String, List<String>> targetMap = decl.isAbstract() ? abstractImpl : concreteImpl;
+
                     for (var implementedType : decl.getImplementedTypes()) {
                         String ifaceName = implementedType.getNameAsString();
-                        if (!interfaceImplementations.containsKey(ifaceName)) {
-                            interfaceImplementations.put(ifaceName, new ArrayList<>());
-                        }
-                        interfaceImplementations.get(ifaceName).add(className);
+                        targetMap.computeIfAbsent(ifaceName, k -> new ArrayList<>()).add(className);
                     }
                 }
             }
@@ -65,14 +69,9 @@ public class App {
                 String className = decl.getFullyQualifiedName().orElse(decl.getNameAsString());
                 for (var implementedType : decl.getImplementedTypes()) {
                     String ifaceName = implementedType.getNameAsString();
-                    if (!interfaceImplementations.containsKey(ifaceName)) {
-                        interfaceImplementations.put(ifaceName, new ArrayList<>());
-                    }
-                    interfaceImplementations.get(ifaceName).add(className);
+                    concreteImpl.computeIfAbsent(ifaceName, k -> new ArrayList<>()).add(className);
                 }
             }
         }
-
-        return interfaceImplementations;
     }
 }

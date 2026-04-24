@@ -1,6 +1,8 @@
 package interfacedetector;
 
 import java.util.*;
+import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -31,6 +33,9 @@ public class App {
 
     public static void buildImplementorsMaps(Path folder,
             Map<String, List<String>> concreteImpl, Map<String, List<String>> abstractImpl) {
+        StaticJavaParser.setConfiguration(new ParserConfiguration()
+                .setLanguageLevel(LanguageLevel.JAVA_21));
+
         List<Path> javaFiles;
 
         try {

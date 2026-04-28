@@ -18,6 +18,11 @@ public class App {
 
         buildImplementorsMaps(Path.of(args[0]), concreteImpl, abstractImpl);
 
+        Set<String> allInterfaces = new HashSet<>();
+        allInterfaces.addAll(concreteImpl.keySet());
+        allInterfaces.addAll(abstractImpl.keySet());
+        System.out.println("Total unique interfaces detected: " + allInterfaces.size());
+
         System.out.println("=== Concrete Implementations ===");
         for (var entry : concreteImpl.entrySet()) {
             if (!entry.getValue().isEmpty())

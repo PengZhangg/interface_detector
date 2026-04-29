@@ -52,6 +52,8 @@ public class App {
             return;
         }
 
+        Set<String> sourceInterfaces = new HashSet<>();
+
         for (Path file : javaFiles) {
             CompilationUnit cu;
             try {
@@ -63,6 +65,7 @@ public class App {
             for (ClassOrInterfaceDeclaration decl : cu.findAll(ClassOrInterfaceDeclaration.class)) {
                 if (decl.isInterface()) {
                     String name = decl.getNameAsString();
+                    sourceInterfaces.add(name);
                     concreteImpl.putIfAbsent(name, new ArrayList<>());
                     abstractImpl.putIfAbsent(name, new ArrayList<>());
                 } else {
@@ -83,5 +86,8 @@ public class App {
                 }
             }
         }
+
+        concreteImpl.keySet().retainAll(sourceInterfaces);
+        abstractImpl.keySet().retainAll(sourceInterfaces);
     }
 }

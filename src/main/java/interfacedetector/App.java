@@ -41,8 +41,8 @@ public class App {
         StaticJavaParser.setConfiguration(new ParserConfiguration()
                 .setLanguageLevel(LanguageLevel.JAVA_21));
 
+        // list all paths of .java files to walk over
         List<Path> javaFiles;
-
         try {
             javaFiles = Files.walk(folder)
                     .filter(p -> p.toString().endsWith(".java"))
@@ -52,42 +52,51 @@ public class App {
             return;
         }
 
-        Set<String> sourceInterfaces = new HashSet<>();
-
+        // generate ast for all .java files
+        List<CompilationUnit> parsedFiles = new ArrayList<>();
         for (Path file : javaFiles) {
-            CompilationUnit cu;
             try {
-                cu = StaticJavaParser.parse(file);
+                parsedFiles.add(StaticJavaParser.parse(file));
             } catch (Exception e) {
                 System.err.println("Error parsing file: " + file + ": " + e.getMessage());
-                continue;
             }
+        }
+
+        // first pass, collect all interfaces as keys
+        for (CompilationUnit cu : parsedFiles) {
             for (ClassOrInterfaceDeclaration decl : cu.findAll(ClassOrInterfaceDeclaration.class)) {
                 if (decl.isInterface()) {
                     String name = decl.getNameAsString();
-                    sourceInterfaces.add(name);
                     concreteImpl.putIfAbsent(name, new ArrayList<>());
                     abstractImpl.putIfAbsent(name, new ArrayList<>());
-                } else {
-                    String className = decl.getFullyQualifiedName().orElse(decl.getNameAsString());
-                    Map<String, List<String>> targetMap = decl.isAbstract() ? abstractImpl : concreteImpl;
-
-                    for (var implementedType : decl.getImplementedTypes()) {
-                        String ifaceName = implementedType.getNameAsString();
-                        targetMap.computeIfAbsent(ifaceName, k -> new ArrayList<>()).add(className);
-                    }
-                }
-            }
-            for (EnumDeclaration decl : cu.findAll(EnumDeclaration.class)) {
-                String className = decl.getFullyQualifiedName().orElse(decl.getNameAsString());
-                for (var implementedType : decl.getImplementedTypes()) {
-                    String ifaceName = implementedType.getNameAsString();
-                    concreteImpl.computeIfAbsent(ifaceName, k -> new ArrayList<>()).add(className);
                 }
             }
         }
 
-        concreteImpl.keySet().retainAll(sourceInterfaces);
-        abstractImpl.keySet().retainAll(sourceInterfaces);
+        // second pass, append implementing classes as values to existing interface keys
+        for (CompilationUnit cu : parsedFiles) {
+            for (ClassOrInterfaceDeclaration decl : cu.findAll(ClassOrInterfaceDeclaration.class)) {
+                if (!decl.isInterface()) {
+                    String className = decl.getFullyQualifiedName().orElse(decl.getNameAsString());
+                    Map<String, List<String>> targetMap = decl.isAbstract() ? abstractImpl : concreteImpl;
+                    for (var implementedType : decl.getImplementedTypes()) {
+                        String ifaceName = implementedType.getNameAsString();
+                        List<String> implementors = targetMap.get(ifaceName);
+                        if (implementors != null)
+                            implementors.add(className);
+                    }
+                }
+            }
+            
+            for (EnumDeclaration decl : cu.findAll(EnumDeclaration.class)) {
+                String className = decl.getFullyQualifiedName().orElse(decl.getNameAsString());
+                for (var implementedType : decl.getImplementedTypes()) {
+                    String ifaceName = implementedType.getNameAsString();
+                    List<String> implementors = concreteImpl.get(ifaceName);
+                    if (implementors != null)
+                        implementors.add(className);
+                }
+            }
+        }
     }
 }

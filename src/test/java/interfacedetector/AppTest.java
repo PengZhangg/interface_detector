@@ -6,19 +6,21 @@ import java.nio.file.Path;
 import java.util.*;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class AppTest {
 
-    private static final Path TEST_FOLDER = Path.of("src/test/resources/testProgram_1");
-    private static final Path TEST_FOLDER_2 = Path.of("src/test/resources/testProgram_2");
-    private static final Path TEST_FOLDER_3 = Path.of("src/test/resources/testProgram_3");
+    private static final Path TEST1 = Path.of("src/test/resources/test1");
+    private static final Path TEST2 = Path.of("src/test/resources/test2");
+    private static final Path TEST3 = Path.of("src/test/resources/test3");
+    private static final Path TEST4 = Path.of("src/test/resources/test4");
 
     // test basic concrete implementation
     @Test
     public void testImplementorCounts() {
         Map<String, List<String>> concreteImpl = new HashMap<>();
         Map<String, List<String>> abstractImpl = new HashMap<>();
-        App.buildImplementorsMaps(TEST_FOLDER, concreteImpl, abstractImpl);
+        App.buildImplementorsMaps(TEST1, concreteImpl, abstractImpl);
 
         assertEquals(2, concreteImpl.get("Shape").size());
         assertEquals(1, concreteImpl.get("Hamburger").size());
@@ -30,7 +32,7 @@ public class AppTest {
     public void testImplementorCounts_program2() {
         Map<String, List<String>> concreteImpl = new HashMap<>();
         Map<String, List<String>> abstractImpl = new HashMap<>();
-        App.buildImplementorsMaps(TEST_FOLDER_2, concreteImpl, abstractImpl);
+        App.buildImplementorsMaps(TEST2, concreteImpl, abstractImpl);
 
         assertEquals(0, concreteImpl.get("Flyable").size());
         assertEquals(1, concreteImpl.get("Swimmable").size());
@@ -42,8 +44,19 @@ public class AppTest {
     public void testImplementorCounts_program3() {
         Map<String, List<String>> concreteImpl = new HashMap<>();
         Map<String, List<String>> abstractImpl = new HashMap<>();
-        App.buildImplementorsMaps(TEST_FOLDER_3, concreteImpl, abstractImpl);
+        App.buildImplementorsMaps(TEST3, concreteImpl, abstractImpl);
 
         assertEquals(1, concreteImpl.get("Week").size());
+    }
+
+    // test java built-in interfaces aren't counted
+    @Test
+    public void testBuiltinInterfaces_program4() {
+        Map<String, List<String>> concreteImpl = new HashMap<>();
+        Map<String, List<String>> abstractImpl = new HashMap<>();
+        App.buildImplementorsMaps(TEST4, concreteImpl, abstractImpl);
+
+        assertEquals(1, concreteImpl.get("Animal").size());
+        assertNull(concreteImpl.get("Comparable"));
     }
 }

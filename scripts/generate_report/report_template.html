@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Interface Detector Report</title>
+  <link rel="stylesheet" href="report.css">
+</head>
+<body>
+  <h1>Interface Detector Report</h1>
+  <p><strong>Scanned directory:</strong> {{SCANNED_DIRECTORY}}</p>
+  <p><strong>Total unique interfaces:</strong> {{TOTAL_UNIQUE_INTERFACES}}</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Interface</th>
+        <th>Concrete Implementations</th>
+        <th>Abstract Implementations</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ROWS}}
+    </tbody>
+  </table>
+</body>
+</html>

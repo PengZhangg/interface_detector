@@ -19,24 +19,25 @@ public class App {
 
         Map<String, List<ImplementationEntry>> concreteImpl = new HashMap<>();
         Map<String, List<ImplementationEntry>> abstractImpl = new HashMap<>();
+        Map<String, String> interfaceFilePaths = new HashMap<>();
 
-        buildImplementorsMaps(scanDir, concreteImpl, abstractImpl);
+        buildImplementorsMaps(scanDir, concreteImpl, abstractImpl, interfaceFilePaths);
         
         Set<String> allInterfaces = new HashSet<>();
         allInterfaces.addAll(concreteImpl.keySet());
         allInterfaces.addAll(abstractImpl.keySet());
 
-        // for each interface, display name, and list of classes that implements it along with the class file paths
         List<Map<String, Object>> interfaces = new ArrayList<>();
         for (String interfaceName : allInterfaces) {
-            Map<String, Object> interfaceEntry = new HashMap<>();
+            Map<String, Object> interfaceEntry = new LinkedHashMap<>();
             interfaceEntry.put("name", interfaceName);
+            interfaceEntry.put("filePath", interfaceFilePaths.getOrDefault(interfaceName, "unknown"));
             interfaceEntry.put("concreteImplementations", concreteImpl.getOrDefault(interfaceName, Collections.emptyList()));
             interfaceEntry.put("abstractImplementations", abstractImpl.getOrDefault(interfaceName, Collections.emptyList()));
             interfaces.add(interfaceEntry);
         }
 
-        Map<String, Object> report = new HashMap<>();
+        Map<String, Object> report = new LinkedHashMap<>();
         report.put("scannedDirectory", scanDir.toAbsolutePath().toString());
         report.put("totalUniqueInterfaces", allInterfaces.size());
         report.put("interfaces", interfaces);
@@ -50,6 +51,13 @@ public class App {
     public static void buildImplementorsMaps(Path folder,
             Map<String, List<ImplementationEntry>> concreteImpl,
             Map<String, List<ImplementationEntry>> abstractImpl) {
+        buildImplementorsMaps(folder, concreteImpl, abstractImpl, new HashMap<>());
+    }
+
+    public static void buildImplementorsMaps(Path folder,
+            Map<String, List<ImplementationEntry>> concreteImpl,
+            Map<String, List<ImplementationEntry>> abstractImpl,
+            Map<String, String> interfaceFilePaths) {
         StaticJavaParser.setConfiguration(new ParserConfiguration()
                 .setLanguageLevel(LanguageLevel.JAVA_21));
 
@@ -74,11 +82,16 @@ public class App {
 
         // first pass: collect all interfaces as keys
         for (CompilationUnit cu : parsedFiles) {
+            String filePath = cu.getStorage()
+                    .map(s -> s.getPath().toAbsolutePath().toString())
+                    .orElse("unknown");
+
             for (ClassOrInterfaceDeclaration decl : cu.findAll(ClassOrInterfaceDeclaration.class)) {
                 if (decl.isInterface()) {
                     String name = decl.getNameAsString();
                     concreteImpl.putIfAbsent(name, new ArrayList<>());
                     abstractImpl.putIfAbsent(name, new ArrayList<>());
+                    interfaceFilePaths.putIfAbsent(name, filePath);
                 }
             }
         }

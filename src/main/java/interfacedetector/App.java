@@ -71,17 +71,16 @@ public class App {
             return;
         }
 
-        List<CompilationUnit> parsedFiles = new ArrayList<>();
+        // first pass: collect all interfaces as keys
         for (Path file : javaFiles) {
+            CompilationUnit cu;
             try {
-                parsedFiles.add(StaticJavaParser.parse(file));
+                cu = StaticJavaParser.parse(file);
             } catch (Exception e) {
                 System.err.println("Error parsing file: " + file + ": " + e.getMessage());
+                continue;
             }
-        }
 
-        // first pass: collect all interfaces as keys
-        for (CompilationUnit cu : parsedFiles) {
             String filePath = cu.getStorage()
                     .map(s -> s.getPath().toAbsolutePath().toString())
                     .orElse("unknown");
@@ -97,7 +96,14 @@ public class App {
         }
 
         // second pass: append implementing classes to existing interface keys
-        for (CompilationUnit cu : parsedFiles) {
+        for (Path file : javaFiles) {
+            CompilationUnit cu;
+            try {
+                cu = StaticJavaParser.parse(file);
+            } catch (Exception e) {
+                System.err.println("Error parsing file: " + file + ": " + e.getMessage());
+                continue;
+            }
 
             String filePath = cu.getStorage()
                     .map(s -> s.getPath().toAbsolutePath().toString())

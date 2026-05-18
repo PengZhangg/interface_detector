@@ -7,7 +7,6 @@ import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import interfacedetector.ImplementationEntry;
 
 public class AppTest {
 

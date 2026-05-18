@@ -32,8 +32,10 @@ def format_implementations(implementations):
 
 # build rows for every interface
 def build_interface_row(interface):
+    visibility = html.escape(interface.get("visibility", "unknown"))
     interface_cell = (
         f"{html.escape(interface['name'])}"
+        f" <span class=\"visibility-label\">{visibility}</span>"
         f"<br><small>{make_path_link(interface['filePath'])}</small>"
     )
 

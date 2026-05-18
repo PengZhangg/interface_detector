@@ -20,8 +20,9 @@ public class App {
         Map<String, List<ImplementationEntry>> concreteImpl = new HashMap<>();
         Map<String, List<ImplementationEntry>> abstractImpl = new HashMap<>();
         Map<String, String> interfaceFilePaths = new HashMap<>();
+        Map<String, String> interfaceVisibilities = new HashMap<>();
 
-        buildImplementorsMaps(scanDir, concreteImpl, abstractImpl, interfaceFilePaths);
+        buildImplementorsMaps(scanDir, concreteImpl, abstractImpl, interfaceFilePaths, interfaceVisibilities);
         
         Set<String> allInterfaces = new HashSet<>();
         allInterfaces.addAll(concreteImpl.keySet());
@@ -32,6 +33,7 @@ public class App {
             Map<String, Object> interfaceEntry = new LinkedHashMap<>();
             interfaceEntry.put("name", interfaceName);
             interfaceEntry.put("filePath", interfaceFilePaths.getOrDefault(interfaceName, "unknown"));
+            interfaceEntry.put("visibility", interfaceVisibilities.getOrDefault(interfaceName, "unknown"));
             interfaceEntry.put("concreteImplementations", concreteImpl.getOrDefault(interfaceName, Collections.emptyList()));
             interfaceEntry.put("abstractImplementations", abstractImpl.getOrDefault(interfaceName, Collections.emptyList()));
             interfaces.add(interfaceEntry);
@@ -58,6 +60,14 @@ public class App {
             Map<String, List<ImplementationEntry>> concreteImpl,
             Map<String, List<ImplementationEntry>> abstractImpl,
             Map<String, String> interfaceFilePaths) {
+        buildImplementorsMaps(folder, concreteImpl, abstractImpl, interfaceFilePaths, new HashMap<>());
+    }
+
+    public static void buildImplementorsMaps(Path folder,
+            Map<String, List<ImplementationEntry>> concreteImpl,
+            Map<String, List<ImplementationEntry>> abstractImpl,
+            Map<String, String> interfaceFilePaths,
+            Map<String, String> interfaceVisibilities) {
         StaticJavaParser.setConfiguration(new ParserConfiguration()
                 .setLanguageLevel(LanguageLevel.JAVA_21));
 
@@ -91,6 +101,7 @@ public class App {
                     concreteImpl.putIfAbsent(name, new ArrayList<>());
                     abstractImpl.putIfAbsent(name, new ArrayList<>());
                     interfaceFilePaths.putIfAbsent(name, filePath);
+                    interfaceVisibilities.putIfAbsent(name, getVisibility(decl));
                 }
             }
         }
@@ -132,5 +143,15 @@ public class App {
                 }
             }
         }
+    }
+
+    private static String getVisibility(ClassOrInterfaceDeclaration decl) {
+        if (decl.isPublic())
+            return "public";
+        if (decl.isPrivate())
+            return "private";
+        if (decl.isProtected())
+            return "protected";
+        return "package-private";
     }
 }

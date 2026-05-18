@@ -23,3 +23,14 @@ th {
 small {
   color: #555;
 }
+
+.visibility-label {
+  background: #eef2f7;
+  border: 1px solid #d4dbe6;
+  border-radius: 0.25rem;
+  color: #334155;
+  display: inline-block;
+  font-size: 0.75rem;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.35rem;
+}

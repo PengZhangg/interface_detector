@@ -59,4 +59,18 @@ public class AppTest {
         assertEquals(1, concreteImpl.get("Animal").size());
         assertNull(concreteImpl.get("Comparable"));
     }
+
+    // test interface visibility is captured
+    @Test
+    public void testInterfaceVisibility() {
+        Map<String, List<ImplementationEntry>> concreteImpl = new HashMap<>();
+        Map<String, List<ImplementationEntry>> abstractImpl = new HashMap<>();
+        Map<String, String> interfaceFilePaths = new HashMap<>();
+        Map<String, String> interfaceVisibilities = new HashMap<>();
+
+        App.buildImplementorsMaps(TEST1, concreteImpl, abstractImpl, interfaceFilePaths, interfaceVisibilities);
+
+        assertEquals("public", interfaceVisibilities.get("Shape"));
+        assertEquals("public", interfaceVisibilities.get("Hamburger"));
+    }
 }

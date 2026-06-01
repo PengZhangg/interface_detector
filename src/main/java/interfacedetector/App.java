@@ -23,7 +23,7 @@ public class App {
         Map<String, String> interfaceVisibilities = new HashMap<>();
 
         buildImplementorsMaps(scanDir, concreteImpl, abstractImpl, interfaceFilePaths, interfaceVisibilities);
-        
+
         Set<String> allInterfaces = new HashSet<>();
         allInterfaces.addAll(concreteImpl.keySet());
         allInterfaces.addAll(abstractImpl.keySet());
@@ -35,8 +35,10 @@ public class App {
             interfaceEntry.put("filePath", interfaceFilePaths.getOrDefault(interfaceName, "unknown"));
             interfaceEntry.put("visibility", interfaceVisibilities.getOrDefault(interfaceName, "unknown"));
             interfaceEntry.put("concreteImplementations", concreteImpl.getOrDefault(interfaceName, Collections.emptyList()));
-            interfaceEntry.put("abstractImplementations", abstractImpl.getOrDefault(interfaceName, Collections.emptyList()));
+            interfaceEntry.put("abstractImplementations",
+                    abstractImpl.getOrDefault(interfaceName, Collections.emptyList()));
             interfaces.add(interfaceEntry);
+                    
         }
 
         Map<String, Object> report = new LinkedHashMap<>();
@@ -44,8 +46,8 @@ public class App {
         report.put("totalUniqueInterfaces", allInterfaces.size());
         report.put("interfaces", interfaces);
 
-        ObjectMapper mapper = new ObjectMapper(); 
-        mapper.writerWithDefaultPrettyPrinter().writeValue(outputFile.toFile(), report); 
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.writerWithDefaultPrettyPrinter().writeValue(outputFile.toFile(), report);
         System.out.println("Total unique interfaces detected: " + allInterfaces.size());
         System.out.println("Output written to: " + outputFile.toAbsolutePath());
     }

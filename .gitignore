@@ -16,4 +16,5 @@ output.json
 report.html
 .matplotlib-cache
 .venv
-output
+programs
+cleanup.sh

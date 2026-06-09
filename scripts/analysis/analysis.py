@@ -14,7 +14,6 @@ os.environ.setdefault("MPLCONFIGDIR", str(SCRIPT_DIR / ".matplotlib-cache"))
 
 import matplotlib.pyplot as plt
 
-
 def build_dataframe(data):
     rows = []
     for interface in data["interfaces"]:
@@ -39,7 +38,7 @@ def build_dataframe(data):
 
     return pd.DataFrame(rows)
 
-
+# compare concrete and abstract interface implementation count
 def save_concrete_vs_abstract(df, output_dir):
     totals = pd.Series(
         {
@@ -56,7 +55,7 @@ def save_concrete_vs_abstract(df, output_dir):
     plt.savefig(output_dir / "concrete_vs_abstract.png", dpi=160)
     plt.close()
 
-
+# compare interface implementation count in buckets
 def save_implementation_buckets(df, output_dir):
     counts = (
         df["bucket"]
@@ -75,7 +74,7 @@ def save_implementation_buckets(df, output_dir):
     plt.savefig(output_dir / "implementation_buckets.png", dpi=160)
     plt.close()
 
-
+# output graphs
 def main():
     input_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_INPUT
     output_dir = Path(sys.argv[2]) if len(sys.argv) > 2 else DEFAULT_OUTPUT_DIR

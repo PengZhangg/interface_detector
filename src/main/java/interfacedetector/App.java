@@ -34,11 +34,12 @@ public class App {
             interfaceEntry.put("name", interfaceName);
             interfaceEntry.put("filePath", interfaceFilePaths.getOrDefault(interfaceName, "unknown"));
             interfaceEntry.put("visibility", interfaceVisibilities.getOrDefault(interfaceName, "unknown"));
-            interfaceEntry.put("concreteImplementations", concreteImpl.getOrDefault(interfaceName, Collections.emptyList()));
+            interfaceEntry.put("concreteImplementations",
+                    concreteImpl.getOrDefault(interfaceName, Collections.emptyList()));
             interfaceEntry.put("abstractImplementations",
                     abstractImpl.getOrDefault(interfaceName, Collections.emptyList()));
             interfaces.add(interfaceEntry);
-                    
+
         }
 
         Map<String, Object> report = new LinkedHashMap<>();

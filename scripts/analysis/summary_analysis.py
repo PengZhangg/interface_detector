@@ -17,6 +17,8 @@ COLORS = {
     "concrete": "#ebcb8b",
     "abstract": "#81a1c1",
     "scatter": "#5e81ac",
+    "zero_impl": "#bf616a",
+    "single_impl": "#5e81ac",
 }
 
 
@@ -124,6 +126,59 @@ def save_abstract_vs_concrete(projects: list[dict], out: Path) -> None:
     print(f"  Saved abstract_vs_concrete.png")
 
 
+def impl_total(interface: dict) -> int:
+    return len(interface["concreteImplementations"]) + len(interface["abstractImplementations"])
+
+
+def save_exact_impl_per_project(projects: list[dict], out: Path, n: int,
+                                filename: str, color: str, label: str) -> None:
+    rows = []
+    for p in projects:
+        total = len(p["interfaces"])
+        if total == 0:
+            continue
+        count = sum(1 for i in p["interfaces"] if impl_total(i) == n)
+        rows.append((p["_project"], count, count / total * 100))
+
+    rows.sort(key=lambda r: r[1], reverse=True)
+    names = [r[0] for r in rows]
+    counts = [r[1] for r in rows]
+    shares = [r[2] for r in rows]
+
+    corpus_total = sum(len(p["interfaces"]) for p in projects)
+    corpus_share = sum(counts) / corpus_total * 100 if corpus_total else 0
+
+    fig, (ax_top, ax_bot) = plt.subplots(2, 1, figsize=(18, 9), sharex=True)
+    x = np.arange(len(names))
+
+    ax_top.bar(x, counts, color=color, edgecolor="white", linewidth=0.5)
+    ax_top.set_title(f"Interfaces with exactly {n} implementation{'' if n == 1 else 's'} "
+                     f"({label}) — {sum(counts):,} of {corpus_total:,} interfaces "
+                     f"corpus-wide ({corpus_share:.1f}%)")
+    ax_top.set_ylabel(f"Interfaces with {n} impl.")
+    ax_top.grid(True, axis="y", linestyle="--", alpha=0.4)
+    ax_top.set_axisbelow(True)
+
+    ax_bot.bar(x, shares, color=color, edgecolor="white", linewidth=0.5)
+    ax_bot.axhline(corpus_share, color="#4c566a", linestyle="--", linewidth=1.2,
+                   label=f"Corpus-wide rate ({corpus_share:.1f}%)")
+    ax_bot.set_ylabel(f"Share of project's interfaces (%)")
+    ax_bot.yaxis.set_major_formatter(mticker.PercentFormatter())
+    ax_bot.grid(True, axis="y", linestyle="--", alpha=0.4)
+    ax_bot.set_axisbelow(True)
+    ax_bot.legend(loc="upper right")
+
+    ax_bot.set_xticks(x)
+    ax_bot.set_xticklabels(names, rotation=90, fontsize=7)
+    ax_bot.set_xlim(-0.7, len(names) - 0.3)
+    ax_bot.set_xlabel("Project (ordered by raw count, descending)")
+
+    fig.tight_layout()
+    fig.savefig(out / filename, dpi=160)
+    plt.close(fig)
+    print(f"  Saved {filename}")
+
+
 def save_size_vs_unimplemented(projects: list[dict], out: Path) -> None:
     names, sizes, rates = [], [], []
     for p in projects:
@@ -174,6 +229,10 @@ def main() -> None:
     save_impl_count_distribution(projects, summary_dir)
     save_abstract_vs_concrete(projects, summary_dir)
     save_size_vs_unimplemented(projects, summary_dir)
+    save_exact_impl_per_project(projects, summary_dir, 0, "zero_impl_per_project.png",
+                                COLORS["zero_impl"], "unimplemented")
+    save_exact_impl_per_project(projects, summary_dir, 1, "single_impl_per_project.png",
+                                COLORS["single_impl"], "single implementation")
 
     print(f"\nDone → {summary_dir}")
 

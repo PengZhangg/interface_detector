@@ -1,0 +1,44 @@
+# Shared look for all figures generated under scripts/analysis.
+# Uses matplotlib's built-in "cm" mathtext fonts to mimic LaTeX's Computer
+# Modern without needing a full text.usetex LaTeX round-trip (several plot
+# labels contain a literal "%", which a real LaTeX pass would swallow as a
+# comment character).
+
+font.family: serif
+font.serif: DejaVu Serif
+mathtext.fontset: cm
+axes.formatter.use_mathtext: True
+
+axes.unicode_minus: True
+
+figure.dpi: 120
+savefig.dpi: 200
+savefig.bbox: tight
+savefig.pad_inches: 0.15
+
+axes.labelsize: 10
+xtick.labelsize: 9
+ytick.labelsize: 9
+legend.fontsize: 9
+
+axes.spines.top: False
+axes.spines.right: False
+axes.edgecolor: 000000
+axes.labelcolor: 000000
+text.color: 000000
+xtick.color: 000000
+ytick.color: 000000
+
+xtick.direction: out
+ytick.direction: out
+
+axes.grid: True
+axes.axisbelow: True
+grid.color: cccccc
+grid.linewidth: 0.6
+grid.alpha: 0.6
+
+patch.edgecolor: 000000
+patch.force_edgecolor: True
+
+legend.frameon: False

@@ -1,18 +1,15 @@
 import json
-import os
 import sys
 from pathlib import Path
 
 import pandas as pd
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+from common import PALETTE, SCRIPT_DIR
+import matplotlib.pyplot as plt
+
 DEFAULT_INPUT = SCRIPT_DIR.parent / "generate_report" / "output.json"
 DEFAULT_OUTPUT_DIR = SCRIPT_DIR / "analysis"
 
-# use specified directory to store cache
-os.environ.setdefault("MPLCONFIGDIR", str(SCRIPT_DIR / ".matplotlib-cache"))
-
-import matplotlib.pyplot as plt
 
 def build_dataframe(data):
     rows = []
@@ -38,7 +35,7 @@ def build_dataframe(data):
 
     return pd.DataFrame(rows)
 
-# compare concrete and abstract interface implementation count
+
 def save_concrete_vs_abstract(df, output_dir):
     totals = pd.Series(
         {
@@ -47,15 +44,17 @@ def save_concrete_vs_abstract(df, output_dir):
         }
     )
 
-    totals.plot(kind="bar", color=["#ebcb8b", "#a3be8c"])
-    plt.title("Concrete vs Abstract Implementations")
+    totals.plot(kind="bar",
+                color=[PALETTE["blue"]["fill"], PALETTE["red"]["fill"]],
+                edgecolor=[PALETTE["blue"]["edge"], PALETTE["red"]["edge"]],
+                linewidth=1.2)
     plt.ylabel("Implementation count")
     plt.xticks(rotation=0)
     plt.tight_layout()
     plt.savefig(output_dir / "concrete_vs_abstract.png", dpi=160)
     plt.close()
 
-# compare interface implementation count in buckets
+
 def save_implementation_buckets(df, output_dir):
     counts = (
         df["bucket"]
@@ -66,15 +65,18 @@ def save_implementation_buckets(df, output_dir):
         )
     )
 
-    counts.plot(kind="bar", color=["#d08770", "#ebcb8b", "#a3be8c"])
-    plt.title("Interfaces by Implementation Count")
+    specs = [PALETTE["blue"], PALETTE["red"], PALETTE["brown"]]
+    counts.plot(kind="bar",
+                color=[s["fill"] for s in specs],
+                edgecolor=[s["edge"] for s in specs],
+                linewidth=1.2)
     plt.ylabel("Number of interfaces")
     plt.xticks(rotation=0)
     plt.tight_layout()
     plt.savefig(output_dir / "implementation_buckets.png", dpi=160)
     plt.close()
 
-# output graphs
+
 def main():
     input_path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_INPUT
     output_dir = Path(sys.argv[2]) if len(sys.argv) > 2 else DEFAULT_OUTPUT_DIR

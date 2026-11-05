@@ -14,6 +14,8 @@ public class AppTest {
     private static final Path TEST2 = Path.of("src/test/resources/test2");
     private static final Path TEST3 = Path.of("src/test/resources/test3");
     private static final Path TEST4 = Path.of("src/test/resources/test4");
+    private static final Path TEST6 = Path.of("src/test/resources/test6");
+    private static final Path TEST7 = Path.of("src/test/resources/test7");
 
     // test basic concrete implementation
     @Test
@@ -72,5 +74,34 @@ public class AppTest {
 
         assertEquals("public", interfaceVisibilities.get("Shape"));
         assertEquals("public", interfaceVisibilities.get("Hamburger"));
+    }
+
+    // test that interfaces with zero declared methods (marker/constant interfaces) are captured
+    @Test
+    public void testMethodlessInterfaces_program6() {
+        Map<String, List<ImplementationEntry>> concreteImpl = new HashMap<>();
+        Map<String, List<ImplementationEntry>> abstractImpl = new HashMap<>();
+        Map<String, String> interfaceFilePaths = new HashMap<>();
+        Map<String, String> interfaceVisibilities = new HashMap<>();
+        Map<String, List<String>> extendedInterfaces = new HashMap<>();
+        Map<String, Integer> methodCounts = new HashMap<>();
+
+        App.buildImplementorsMaps(TEST6, concreteImpl, abstractImpl, interfaceFilePaths, interfaceVisibilities,
+                extendedInterfaces, methodCounts);
+
+        assertEquals(0, (int) methodCounts.get("Marker"));
+        assertEquals(0, (int) methodCounts.get("Constants"));
+        assertEquals(1, (int) methodCounts.get("Sized"));
+    }
+
+    // tests that records can implement interfaces
+    @Test
+    public void testRecordImplementations_program7() {
+        Map<String, List<ImplementationEntry>> concreteImpl = new HashMap<>();
+        Map<String, List<ImplementationEntry>> abstractImpl = new HashMap<>();
+        App.buildImplementorsMaps(TEST7, concreteImpl, abstractImpl);
+
+        assertEquals(1, concreteImpl.get("Shape").size());
+        assertEquals(0, abstractImpl.get("Shape").size());
     }
 }

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Usage: python run.py <java-project-dir | dir-of-java-projects>"""
 
 import shutil
 import subprocess
@@ -11,15 +12,14 @@ REPORT_SCRIPT = SCRIPT_DIR / "scripts" / "generate_report" / "generate_report.py
 REPORT_CSS_SRC = SCRIPT_DIR / "scripts" / "generate_report" / "report.css"
 ANALYSIS_SCRIPT = SCRIPT_DIR / "scripts" / "analysis" / "analysis.py"
 SUMMARY_SCRIPT = SCRIPT_DIR / "scripts" / "analysis" / "summary_analysis.py"
+PARAM_SUMMARY_SCRIPT = SCRIPT_DIR / "scripts" / "analysis" / "parameter_analysis.py"
 
 _VENV_PYTHON = SCRIPT_DIR / ".venv" / "bin" / "python"
 PYTHON = str(_VENV_PYTHON) if _VENV_PYTHON.exists() else sys.executable
 
 
-def has_java_sources(directory: Path, max_depth: int = 4) -> bool:
-    for _ in directory.rglob("*.java"):
-        return True
-    return False
+def has_java_sources(directory: Path) -> bool:
+    return next(directory.rglob("*.java"), None) is not None
 
 
 def process_project(input_dir: Path, output_base: Path) -> None:
@@ -29,7 +29,7 @@ def process_project(input_dir: Path, output_base: Path) -> None:
 
     print(f"==> Processing: {project_name}")
 
-    # step 1: execute jar, capture errors and store in errors.txt
+    # step 1: run the detector, saving parse errors to errors.txt
     json_out = output_dir / "output.json"
     errors_out = output_dir / "errors.txt"
     result = subprocess.run(
@@ -43,6 +43,17 @@ def process_project(input_dir: Path, output_base: Path) -> None:
         print(f"    [1/3] JSON  → {json_out} (errors → {errors_out})")
     else:
         print(f"    [1/3] JSON  → {json_out}")
+
+    # step 1b: parameters typed with a zero-implementation interface
+    params_out = output_dir / "zero_impl_params.csv"
+    subprocess.run(
+        ["java", "-cp", str(JAR), "interfacedetector.ParameterUsage",
+         str(input_dir), str(json_out), str(params_out)],
+        check=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,  # parse errors are already in errors.txt
+    )
+    print(f"    [1/3] Params → {params_out}")
 
     # step 2: generate HTML report
     html_out = output_dir / "report.html"
@@ -72,6 +83,10 @@ def run_summary(output_base: Path) -> None:
     print("Running summary analysis across all projects...")
     subprocess.run(
         [PYTHON, str(SUMMARY_SCRIPT), str(output_base)],
+        check=True,
+    )
+    subprocess.run(
+        [PYTHON, str(PARAM_SUMMARY_SCRIPT), str(output_base)],
         check=True,
     )
     print(f"Summary output → {output_base / 'summary'}\n")

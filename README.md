@@ -25,16 +25,16 @@ python3 -m venv .venv
 python run.py <path-to-java-project>
 ```
 
-The Python script executes the full pipeline and writes all output into a folder named `<ProjectName>Output/` next to the input folder:
+This runs the full pipeline and writes everything to `output/<ProjectName>Output/` next to the input folder:
 
 ```text
 <ProjectName>Output/
-├── output.json        # raw analysis data
-├── report.html        # HTML report
-├── report.css         # stylesheet for the report
+├── output.json            # interfaces, implementations, visibility, extends, method counts
+├── zero_impl_params.csv   # parameters typed with a zero-implementation interface
+├── report.html            # HTML report (+ report.css)
 ├── concrete_vs_abstract.png
 ├── implementation_buckets.png
-└── errors.txt         # parse errors, if any
+└── errors.txt             # parse errors, if any
 ```
 
 ### Batch mode
@@ -45,4 +45,21 @@ Point `run.py` at a directory of Java projects and it will process each one:
 python run.py <path-to-directory-of-projects>
 ```
 
-Each subdirectory that contains `.java` files gets its own `<ProjectName>Output/` folder.
+Each subdirectory that contains `.java` files gets its own `output/<ProjectName>Output/` folder, and cross-project charts and tables are written to `output/summary/`.
+
+### Extra analyses
+
+These run on a batch `output/` folder and also write to `output/summary/`:
+
+```bash
+.venv/bin/python scripts/analysis/multi_impl_analysis.py <output-dir>   # interfaces with 2+ implementations
+.venv/bin/python scripts/analysis/pattern_analysis.py <output-dir>      # grandparent pattern, marker/constant interfaces
+```
+
+To see what still references each zero-implementation interface:
+
+```bash
+java -cp target/interfaceDetector-1.0-SNAPSHOT.jar interfacedetector.ReferenceAnalyzer \
+    <project-dir> <output.json> <refs-dir>/<project>.json
+.venv/bin/python scripts/analysis/reference_analysis.py <refs-dir> <out-dir>
+```

@@ -43,13 +43,17 @@ Point `run.py` at a directory of Java projects and it will process each one:
 python run.py <path-to-directory-of-projects>
 ```
 
-Each subdirectory that contains `.java` files gets its own `output/<ProjectName>Output/` folder, and cross-project charts and tables are written to `output/summary/`.
+Each subdirectory that contains `.java` files gets its own `output/<ProjectName>Output/` folder. Then the corpus-wide analyses run, writing charts and tables to `output/summary/`:
 
-### Extra analyses
+| Script | Covers |
+| --- | --- |
+| `scripts/analysis/summary_analysis.py` | visibility, abstract vs concrete, zero/single implementation rates |
+| `scripts/analysis/parameter_analysis.py` | zero-implementation interfaces used as parameter types |
+| `scripts/analysis/multi_impl_analysis.py` | interfaces with 2+ implementations |
+| `scripts/analysis/pattern_analysis.py` | grandparent pattern, marker/constant interfaces |
 
-These run on a batch `output/` folder and also write to `output/summary/`:
+Each one can also be rerun on its own against an existing output folder:
 
 ```bash
-.venv/bin/python scripts/analysis/multi_impl_analysis.py <output-dir>   # interfaces with 2+ implementations
-.venv/bin/python scripts/analysis/pattern_analysis.py <output-dir>      # grandparent pattern, marker/constant interfaces
+.venv/bin/python scripts/analysis/<script>.py <output-dir>
 ```

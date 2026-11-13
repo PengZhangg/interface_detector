@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -40,3 +41,47 @@ def group_by_project(rows: list[dict]) -> dict[str, list[dict]]:
     for r in rows:
         by_project.setdefault(r["project"], []).append(r)
     return by_project
+
+
+def load_corpus_from_argv(script: str) -> tuple[list[dict], Path]:
+    """Reads <output-dir> from argv; returns its projects and the summary/ folder to write into."""
+    if len(sys.argv) != 2:
+        sys.exit(f"Usage: python {Path(script).name} <output-dir>")
+    output_dir = Path(sys.argv[1]).resolve()
+    if not output_dir.exists():
+        sys.exit(f"Error: '{output_dir}' does not exist.")
+    projects = load_projects(output_dir)
+    if not projects:
+        sys.exit(f"No output.json files found under '{output_dir}'.")
+    print(f"Loaded {len(projects)} project(s).")
+    summary_dir = output_dir / "summary"
+    summary_dir.mkdir(parents=True, exist_ok=True)
+    return projects, summary_dir
+
+
+def pct_str(count: int, total: int) -> str:
+    return f"{count / total * 100:.2f}" if total else "0"
+
+
+def children_of(interfaces: list[dict]) -> dict[str, list[str]]:
+    """Maps each interface name to the interfaces that directly extend it."""
+    children: dict[str, list[str]] = {i["name"]: [] for i in interfaces}
+    for i in interfaces:
+        for parent in i.get("extendedInterfaces", []):
+            if parent in children:
+                children[parent].append(i["name"])
+    return children
+
+
+def has_implemented_descendant(name: str, children: dict[str, list[str]], implemented: set[str]) -> bool:
+    """True if any interface extending `name`, directly or further down, has an implementation."""
+    stack, seen = list(children.get(name, [])), set()
+    while stack:
+        child = stack.pop()
+        if child in seen:
+            continue
+        seen.add(child)
+        if child in implemented:
+            return True
+        stack.extend(children.get(child, []))
+    return False

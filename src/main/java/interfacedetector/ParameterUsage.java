@@ -6,8 +6,6 @@ import java.nio.file.Path;
 import java.util.*;
 
 import com.github.javaparser.JavaParser;
-import com.github.javaparser.ParserConfiguration;
-import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.Node;
@@ -80,25 +78,22 @@ public class ParameterUsage {
     /** Also counts anonymous classes ({@code new Foo() { ... }}) per interface into {@code anonymousClasses}. */
     public static List<ParamRow> analyze(Path scanDir, Set<String> zeroImpl,
             Map<String, Integer> anonymousClasses) throws Exception {
-        JavaParser parser = new JavaParser(new ParserConfiguration().setLanguageLevel(LanguageLevel.JAVA_21));
-        List<Path> javaFiles;
-        try (var walk = Files.walk(scanDir)) {
-            javaFiles = walk.filter(p -> p.toString().endsWith(".java")).toList();
-        }
+        JavaParser parser = JavaSources.newParser();
+        List<Path> javaFiles = JavaSources.list(scanDir);
 
         // first pass: index interfaces (trees aren't kept, to save heap)
         Map<String, List<Iface>> bySimpleName = new HashMap<>();
         for (Path file : javaFiles) {
-            CompilationUnit cu = parse(parser, file, true);
+            CompilationUnit cu = JavaSources.parse(parser, file, false, true).orElse(null);
             if (cu == null)
                 continue;
-            String pkg = packageOf(cu);
+            String pkg = JavaSources.packageOf(cu);
             for (ClassOrInterfaceDeclaration decl : cu.findAll(ClassOrInterfaceDeclaration.class)) {
                 if (!decl.isInterface())
                     continue;
                 String fqn = decl.getFullyQualifiedName().orElseGet(decl::getNameAsString);
                 bySimpleName.computeIfAbsent(decl.getNameAsString(), k -> new ArrayList<>())
-                        .add(new Iface(fqn, decl.getNameAsString(), pkg, pathOf(cu), decl.isTopLevelType(),
+                        .add(new Iface(fqn, decl.getNameAsString(), pkg, JavaSources.pathOf(cu), decl.isTopLevelType(),
                                 countAbstractMethods(decl), !decl.getExtendedTypes().isEmpty(),
                                 decl.getAnnotationByName("FunctionalInterface").isPresent()));
             }
@@ -106,7 +101,7 @@ public class ParameterUsage {
 
         List<ParamRow> rows = new ArrayList<>();
         for (Path file : javaFiles) {
-            CompilationUnit cu = parse(parser, file, false);
+            CompilationUnit cu = JavaSources.parse(parser, file, false, false).orElse(null);
             if (cu == null)
                 continue;
             for (MethodDeclaration m : cu.findAll(MethodDeclaration.class))
@@ -151,7 +146,7 @@ public class ParameterUsage {
                     continue;
                 rows.add(new ParamRow(iface, ownerName, declaringKind(owner, iface.fqn()), memberName, memberKind,
                         member.getBegin().map(b -> b.line).orElse(-1),
-                        p.getNameAsString(), p.getType().asString(), t == outer, pathOf(cu),
+                        p.getNameAsString(), p.getType().asString(), t == outer, JavaSources.pathOf(cu),
                         p.getBegin().map(b -> b.line).orElse(-1)));
             }
         }
@@ -215,11 +210,11 @@ public class ParameterUsage {
             List<Iface> suffix = candidates.stream()
                     .filter(c -> c.fqn().equals(written) || c.fqn().endsWith("." + written)).toList();
             if (suffix.size() > 1)
-                suffix = suffix.stream().filter(c -> c.pkg().equals(packageOf(cu))).toList();
+                suffix = suffix.stream().filter(c -> c.pkg().equals(JavaSources.packageOf(cu))).toList();
             return suffix.size() == 1 ? suffix.get(0) : null;
         }
 
-        String file = pathOf(cu);
+        String file = JavaSources.pathOf(cu);
         List<Iface> sameFile = candidates.stream().filter(c -> c.file().equals(file)).toList();
         if (!sameFile.isEmpty())
             return sameFile.size() == 1 ? sameFile.get(0) : null;
@@ -238,7 +233,7 @@ public class ParameterUsage {
             return imported.size() == 1 ? imported.get(0) : null;
         }
 
-        String pkg = packageOf(cu);
+        String pkg = JavaSources.packageOf(cu);
         List<Iface> samePackage = candidates.stream()
                 .filter(c -> c.topLevel() && c.pkg().equals(pkg)).toList();
         if (!samePackage.isEmpty())
@@ -247,27 +242,6 @@ public class ParameterUsage {
         List<Iface> viaWildcard = candidates.stream()
                 .filter(c -> wildcards.stream().anyMatch(w -> c.fqn().equals(w + "." + simple))).toList();
         return viaWildcard.size() == 1 ? viaWildcard.get(0) : null;
-    }
-
-    /** Returns null if the file doesn't parse. */
-    private static CompilationUnit parse(JavaParser parser, Path file, boolean report) {
-        Optional<CompilationUnit> parsed;
-        try {
-            parsed = parser.parse(file).getResult();
-        } catch (Exception e) {
-            parsed = Optional.empty();
-        }
-        if (parsed.isEmpty() && report)
-            System.err.println("Error parsing file: " + file);
-        return parsed.orElse(null);
-    }
-
-    private static String packageOf(CompilationUnit cu) {
-        return cu.getPackageDeclaration().map(pd -> pd.getNameAsString()).orElse("");
-    }
-
-    private static String pathOf(CompilationUnit cu) {
-        return cu.getStorage().map(s -> s.getPath().toAbsolutePath().toString()).orElse("unknown");
     }
 
     private static String csv(String s) {

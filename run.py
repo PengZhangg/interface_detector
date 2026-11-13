@@ -10,8 +10,12 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 JAR = SCRIPT_DIR / "target" / "interfaceDetector-1.0-SNAPSHOT.jar"
 REPORT_SCRIPT = SCRIPT_DIR / "scripts" / "generate_report" / "generate_report.py"
 REPORT_CSS_SRC = SCRIPT_DIR / "scripts" / "generate_report" / "report.css"
-SUMMARY_SCRIPT = SCRIPT_DIR / "scripts" / "analysis" / "summary_analysis.py"
-PARAM_SUMMARY_SCRIPT = SCRIPT_DIR / "scripts" / "analysis" / "parameter_analysis.py"
+# corpus-wide analyses, each run as: <script> <output-dir>
+CORPUS_SCRIPTS = [
+    SCRIPT_DIR / "scripts" / "analysis" / name
+    for name in ("summary_analysis.py", "parameter_analysis.py",
+                 "multi_impl_analysis.py", "pattern_analysis.py")
+]
 
 _VENV_PYTHON = SCRIPT_DIR / ".venv" / "bin" / "python"
 PYTHON = str(_VENV_PYTHON) if _VENV_PYTHON.exists() else sys.executable
@@ -71,14 +75,8 @@ def process_project(input_dir: Path, output_base: Path) -> None:
 def run_summary(output_base: Path) -> None:
     print("=" * 60)
     print("Running summary analysis across all projects...")
-    subprocess.run(
-        [PYTHON, str(SUMMARY_SCRIPT), str(output_base)],
-        check=True,
-    )
-    subprocess.run(
-        [PYTHON, str(PARAM_SUMMARY_SCRIPT), str(output_base)],
-        check=True,
-    )
+    for script in CORPUS_SCRIPTS:
+        subprocess.run([PYTHON, str(script), str(output_base)], check=True)
     print(f"Summary output → {output_base / 'summary'}\n")
 
 

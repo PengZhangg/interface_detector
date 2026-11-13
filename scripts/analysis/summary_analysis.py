@@ -1,76 +1,15 @@
-import sys
+"""Corpus-wide charts over every project's output.json.
+
+Usage: python summary_analysis.py <output-dir>
+"""
 from pathlib import Path
 
-from common import DEFAULT, PALETTE, impl_total, load_projects
+from charts import ProjectRow, grouped_bar_with_pct, save, save_count_and_share_per_project, \
+    save_share_per_project
+from common import DEFAULT, PALETTE, impl_total, load_corpus_from_argv
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
-import matplotlib.patches as mpatches
 import numpy as np
-
-
-def grouped_bar_with_pct(ax, names, left_vals, right_vals, left_label, right_label,
-                          left_spec, right_spec, ylabel):
-    left_arr = np.array(left_vals, dtype=float)
-    right_arr = np.array(right_vals, dtype=float)
-    totals = left_arr + right_arr
-
-    order = np.argsort(-totals, kind="stable")
-    names = [names[i] for i in order]
-    left_arr, right_arr, totals = left_arr[order], right_arr[order], totals[order]
-
-    left_pct = np.where(totals > 0, left_arr / totals * 100, 0)
-    right_pct = np.where(totals > 0, right_arr / totals * 100, 0)
-
-    x = np.arange(len(names))
-    width = 0.6
-
-    # draw every non-zero segment; empty ones are skipped so no outline is drawn
-    left_bar = left_arr > 0
-    right_bar = right_arr > 0
-    ax.bar(x[left_bar], left_arr[left_bar], width, label=left_label,
-           color=left_spec["fill"], edgecolor=left_spec["edge"], linewidth=1.2)
-    ax.bar(x[right_bar], right_arr[right_bar], width,
-           bottom=left_arr[right_bar], label=right_label,
-           color=right_spec["fill"], edgecolor=right_spec["edge"], linewidth=1.2)
-
-    # hide labels that would display as "0%"
-    MIN_PCT = 0.5
-    left_mask = left_pct >= MIN_PCT
-    right_mask = right_pct >= MIN_PCT
-
-    ax.set_ylabel(ylabel)
-    ax.set_xlabel("Project (ordered by total, descending)")
-    ax.set_xticks(x)
-    ax.set_xticklabels(names, rotation=45, ha="right", fontsize=8)
-    ax.set_xlim(-0.7, len(names) - 0.3)
-
-    # finalize y-limits before reading them back
-    ax.margins(y=0.15)
-    ax.autoscale_view()
-    y_lo, y_top = ax.get_ylim()
-    span = y_top - y_lo
-    y_nudge = span * 0.01
-
-    # stack both percentage labels above the bar
-    for i in range(len(names)):
-        cursor = totals[i] + y_nudge
-        if left_mask[i]:
-            text = f"{left_pct[i]:.0f}%"
-            ax.text(x[i], cursor, text, ha="center", va="bottom", rotation=90,
-                    fontsize=6, color=left_spec["edge"])
-            cursor += span * 0.011 * len(text) + y_nudge
-        if right_mask[i]:
-            text = f"{right_pct[i]:.0f}%"
-            ax.text(x[i], cursor, text, ha="center", va="bottom", rotation=90,
-                    fontsize=6, color=right_spec["edge"])
-
-    # explicit handles: a bar container's first patch may have been filtered out
-    ax.legend(handles=[
-        mpatches.Patch(facecolor=left_spec["fill"], edgecolor=left_spec["edge"],
-                       linewidth=1.2, label=left_label),
-        mpatches.Patch(facecolor=right_spec["fill"], edgecolor=right_spec["edge"],
-                       linewidth=1.2, label=right_label),
-    ])
 
 
 def save_visibility_ratio(projects: list[dict], out: Path) -> None:
@@ -85,10 +24,7 @@ def save_visibility_ratio(projects: list[dict], out: Path) -> None:
                          "Public", "Package-private",
                          PALETTE["blue"], PALETTE["red"],
                          "Interface count")
-    fig.tight_layout()
-    fig.savefig(out / "visibility_ratio.png", dpi=160)
-    plt.close(fig)
-    print("  Saved visibility_ratio.png")
+    save(fig, out, "visibility_ratio.png")
 
 
 def save_visibility_vs_impl_buckets(projects: list[dict], out: Path) -> None:
@@ -140,10 +76,7 @@ def save_visibility_vs_impl_buckets(projects: list[dict], out: Path) -> None:
     ax.yaxis.set_major_formatter(mticker.PercentFormatter())
     ax.set_ylim(0, 100)
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=1)
-    fig.tight_layout()
-    fig.savefig(out / "visibility_vs_impl_buckets.png", dpi=160)
-    plt.close(fig)
-    print("  Saved visibility_vs_impl_buckets.png")
+    save(fig, out, "visibility_vs_impl_buckets.png")
 
 
 def save_abstract_vs_concrete(projects: list[dict], out: Path) -> None:
@@ -158,92 +91,13 @@ def save_abstract_vs_concrete(projects: list[dict], out: Path) -> None:
                          "Concrete", "Abstract",
                          PALETTE["blue"], PALETTE["red"],
                          "Total implementation count")
-    fig.tight_layout()
-    fig.savefig(out / "abstract_vs_concrete.png", dpi=160)
-    plt.close(fig)
-    print("  Saved abstract_vs_concrete.png")
+    save(fig, out, "abstract_vs_concrete.png")
 
 
-def save_exact_impl_per_project(projects: list[dict], out: Path, n: int,
-                                filename: str, spec: dict) -> None:
-    rows = []
-    for p in projects:
-        total = len(p["interfaces"])
-        count = sum(1 for i in p["interfaces"] if impl_total(i) == n)
-        rows.append((p["_project"], count, count / total * 100 if total else 0))
-
-    rows.sort(key=lambda r: r[1], reverse=True)
-    names = [r[0] for r in rows]
-    counts = [r[1] for r in rows]
-    shares = [r[2] for r in rows]
-
-    corpus_total = sum(len(p["interfaces"]) for p in projects)
-    corpus_share = sum(counts) / corpus_total * 100 if corpus_total else 0
-
-    fig, (ax_top, ax_bot) = plt.subplots(2, 1, figsize=(18, 9), sharex=True)
-    x = np.arange(len(names))
-
-    ax_top.bar(x, counts, color=spec["fill"], edgecolor=spec["edge"], linewidth=0.8)
-    ax_top.set_ylabel(f"Interfaces with {n} impl.")
-    ax_top.grid(True, axis="y", linestyle="--", alpha=0.4)
-    ax_top.set_axisbelow(True)
-
-    ax_bot.bar(x, shares, color=spec["fill"], edgecolor=spec["edge"], linewidth=0.8)
-    ax_bot.axhline(corpus_share, color="#555555", linestyle="--", linewidth=1.2,
-                   label=f"Corpus-wide rate ({corpus_share:.1f}%)")
-    ax_bot.set_ylabel("Share of project's interfaces (%)")
-    ax_bot.yaxis.set_major_formatter(mticker.PercentFormatter())
-    ax_bot.grid(True, axis="y", linestyle="--", alpha=0.4)
-    ax_bot.set_axisbelow(True)
-    ax_bot.legend(loc="upper right")
-
-    ax_bot.set_xticks(x)
-    ax_bot.set_xticklabels(names, rotation=90, fontsize=7)
-    ax_bot.set_xlim(-0.7, len(names) - 0.3)
-    ax_bot.set_xlabel("Project (ordered by raw count, descending)")
-
-    fig.tight_layout()
-    fig.savefig(out / filename, dpi=160)
-    plt.close(fig)
-    print(f"  Saved {filename}")
-
-
-def save_exact_impl_pct_per_project(projects: list[dict], out: Path, n: int,
-                                    filename: str, spec: dict) -> None:
-    rows = []
-    for p in projects:
-        total = len(p["interfaces"])
-        count = sum(1 for i in p["interfaces"] if impl_total(i) == n)
-        rows.append((p["_project"], count, total, count / total * 100 if total else 0))
-
-    rows.sort(key=lambda r: r[3], reverse=True)
-    names = [r[0] for r in rows]
-    shares = [r[3] for r in rows]
-
-    corpus_total = sum(r[2] for r in rows)
-    corpus_share = sum(r[1] for r in rows) / corpus_total * 100 if corpus_total else 0
-
-    fig, ax = plt.subplots(figsize=(18, 7))
-    x = np.arange(len(names))
-
-    ax.bar(x, shares, color=spec["fill"], edgecolor=spec["edge"], linewidth=0.8)
-    ax.axhline(corpus_share, color="#555555", linestyle="--", linewidth=1.2,
-               label=f"Corpus-wide rate ({corpus_share:.1f}%)")
-    ax.set_ylabel("Share of project's interfaces (%)")
-    ax.yaxis.set_major_formatter(mticker.PercentFormatter())
-    ax.grid(True, axis="y", linestyle="--", alpha=0.4)
-    ax.set_axisbelow(True)
-    ax.legend(loc="upper right")
-
-    ax.set_xticks(x)
-    ax.set_xticklabels(names, rotation=90, fontsize=7)
-    ax.set_xlim(-0.7, len(names) - 0.3)
-    ax.set_xlabel("Project (ordered by share, descending)")
-
-    fig.tight_layout()
-    fig.savefig(out / filename, dpi=160)
-    plt.close(fig)
-    print(f"  Saved {filename}")
+def exact_impl_rows(projects: list[dict], n: int) -> list[ProjectRow]:
+    """Per project: how many interfaces have exactly n implementations."""
+    return [(p["_project"], sum(1 for i in p["interfaces"] if impl_total(i) == n), len(p["interfaces"]))
+            for p in projects]
 
 
 def save_size_vs_unimplemented(projects: list[dict], out: Path) -> None:
@@ -268,37 +122,22 @@ def save_size_vs_unimplemented(projects: list[dict], out: Path) -> None:
     ax.set_ylabel("Unimplemented interfaces (%)")
     ax.yaxis.set_major_formatter(mticker.PercentFormatter())
     ax.grid(True, linestyle="--", alpha=0.4)
-    fig.tight_layout()
-    fig.savefig(out / "size_vs_unimplemented.png", dpi=160)
-    plt.close(fig)
-    print("  Saved size_vs_unimplemented.png")
+    save(fig, out, "size_vs_unimplemented.png")
 
 
 def main() -> None:
-    if len(sys.argv) != 2:
-        sys.exit(f"Usage: python {Path(__file__).name} <output-dir>")
-
-    output_dir = Path(sys.argv[1]).resolve()
-    if not output_dir.exists():
-        sys.exit(f"Error: '{output_dir}' does not exist.")
-
-    projects = load_projects(output_dir)
-    if not projects:
-        sys.exit(f"No output.json files found under '{output_dir}'.")
-
-    print(f"Loaded {len(projects)} project(s).")
-
-    summary_dir = output_dir / "summary"
-    summary_dir.mkdir(parents=True, exist_ok=True)
+    projects, summary_dir = load_corpus_from_argv(__file__)
 
     save_visibility_ratio(projects, summary_dir)
     save_visibility_vs_impl_buckets(projects, summary_dir)
     save_abstract_vs_concrete(projects, summary_dir)
     save_size_vs_unimplemented(projects, summary_dir)
-    save_exact_impl_per_project(projects, summary_dir, 0, "zero_impl_per_project.png", DEFAULT)
-    save_exact_impl_per_project(projects, summary_dir, 1, "single_impl_per_project.png", DEFAULT)
-    save_exact_impl_pct_per_project(projects, summary_dir, 0, "zero_impl_pct_per_project.png", DEFAULT)
-    save_exact_impl_pct_per_project(projects, summary_dir, 1, "single_impl_pct_per_project.png", DEFAULT)
+    for n, label in ((0, "zero"), (1, "single")):
+        rows = exact_impl_rows(projects, n)
+        save_count_and_share_per_project(rows, summary_dir, f"{label}_impl_per_project.png",
+                                         f"Interfaces with {n} impl.",
+                                         "Project (ordered by raw count, descending)", show_corpus_rate=True)
+        save_share_per_project(rows, summary_dir, f"{label}_impl_pct_per_project.png")
 
     print(f"\nDone → {summary_dir}")
 

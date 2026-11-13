@@ -17,91 +17,70 @@ public class AppTest {
     private static final Path TEST6 = Path.of("src/test/resources/test6");
     private static final Path TEST7 = Path.of("src/test/resources/test7");
 
+    private static int concrete(Map<String, InterfaceInfo> interfaces, String name) {
+        return interfaces.get(name).concreteImplementations().size();
+    }
+
     // test basic concrete implementation
     @Test
     public void testImplementorCounts() {
-        Map<String, List<ImplementationEntry>> concreteImpl = new HashMap<>();
-        Map<String, List<ImplementationEntry>> abstractImpl = new HashMap<>();
-        App.buildImplementorsMaps(TEST1, concreteImpl, abstractImpl);
+        Map<String, InterfaceInfo> interfaces = InterfaceScanner.scan(TEST1);
 
-        assertEquals(2, concreteImpl.get("Shape").size());
-        assertEquals(1, concreteImpl.get("Hamburger").size());
-        assertEquals(0, concreteImpl.get("Animal").size());
+        assertEquals(2, concrete(interfaces, "Shape"));
+        assertEquals(1, concrete(interfaces, "Hamburger"));
+        assertEquals(0, concrete(interfaces, "Animal"));
     }
 
     // tests that abstract implementations are not counted as concrete
     @Test
     public void testImplementorCounts_program2() {
-        Map<String, List<ImplementationEntry>> concreteImpl = new HashMap<>();
-        Map<String, List<ImplementationEntry>> abstractImpl = new HashMap<>();
-        App.buildImplementorsMaps(TEST2, concreteImpl, abstractImpl);
+        Map<String, InterfaceInfo> interfaces = InterfaceScanner.scan(TEST2);
 
-        assertEquals(0, concreteImpl.get("Flyable").size());
-        assertEquals(1, concreteImpl.get("Swimmable").size());
-        assertEquals(2, concreteImpl.get("Driveable").size());
+        assertEquals(0, concrete(interfaces, "Flyable"));
+        assertEquals(1, concrete(interfaces, "Swimmable"));
+        assertEquals(2, concrete(interfaces, "Driveable"));
     }
 
     // tests that enums can implement interfaces
     @Test
     public void testImplementorCounts_program3() {
-        Map<String, List<ImplementationEntry>> concreteImpl = new HashMap<>();
-        Map<String, List<ImplementationEntry>> abstractImpl = new HashMap<>();
-        App.buildImplementorsMaps(TEST3, concreteImpl, abstractImpl);
-
-        assertEquals(1, concreteImpl.get("Week").size());
+        assertEquals(1, concrete(InterfaceScanner.scan(TEST3), "Week"));
     }
 
     // test java built-in interfaces aren't counted
     @Test
     public void testBuiltinInterfaces_program4() {
-        Map<String, List<ImplementationEntry>> concreteImpl = new HashMap<>();
-        Map<String, List<ImplementationEntry>> abstractImpl = new HashMap<>();
-        App.buildImplementorsMaps(TEST4, concreteImpl, abstractImpl);
+        Map<String, InterfaceInfo> interfaces = InterfaceScanner.scan(TEST4);
 
-        assertEquals(1, concreteImpl.get("Animal").size());
-        assertNull(concreteImpl.get("Comparable"));
+        assertEquals(1, concrete(interfaces, "Animal"));
+        assertNull(interfaces.get("Comparable"));
     }
 
     // test interface visibility is captured
     @Test
     public void testInterfaceVisibility() {
-        Map<String, List<ImplementationEntry>> concreteImpl = new HashMap<>();
-        Map<String, List<ImplementationEntry>> abstractImpl = new HashMap<>();
-        Map<String, String> interfaceFilePaths = new HashMap<>();
-        Map<String, String> interfaceVisibilities = new HashMap<>();
+        Map<String, InterfaceInfo> interfaces = InterfaceScanner.scan(TEST1);
 
-        App.buildImplementorsMaps(TEST1, concreteImpl, abstractImpl, interfaceFilePaths, interfaceVisibilities);
-
-        assertEquals("public", interfaceVisibilities.get("Shape"));
-        assertEquals("public", interfaceVisibilities.get("Hamburger"));
+        assertEquals("public", interfaces.get("Shape").visibility());
+        assertEquals("public", interfaces.get("Hamburger").visibility());
     }
 
     // test that interfaces with zero declared methods (marker/constant interfaces) are captured
     @Test
     public void testMethodlessInterfaces_program6() {
-        Map<String, List<ImplementationEntry>> concreteImpl = new HashMap<>();
-        Map<String, List<ImplementationEntry>> abstractImpl = new HashMap<>();
-        Map<String, String> interfaceFilePaths = new HashMap<>();
-        Map<String, String> interfaceVisibilities = new HashMap<>();
-        Map<String, List<String>> extendedInterfaces = new HashMap<>();
-        Map<String, Integer> methodCounts = new HashMap<>();
+        Map<String, InterfaceInfo> interfaces = InterfaceScanner.scan(TEST6);
 
-        App.buildImplementorsMaps(TEST6, concreteImpl, abstractImpl, interfaceFilePaths, interfaceVisibilities,
-                extendedInterfaces, methodCounts);
-
-        assertEquals(0, (int) methodCounts.get("Marker"));
-        assertEquals(0, (int) methodCounts.get("Constants"));
-        assertEquals(1, (int) methodCounts.get("Sized"));
+        assertEquals(0, interfaces.get("Marker").methodCount());
+        assertEquals(0, interfaces.get("Constants").methodCount());
+        assertEquals(1, interfaces.get("Sized").methodCount());
     }
 
     // tests that records can implement interfaces
     @Test
     public void testRecordImplementations_program7() {
-        Map<String, List<ImplementationEntry>> concreteImpl = new HashMap<>();
-        Map<String, List<ImplementationEntry>> abstractImpl = new HashMap<>();
-        App.buildImplementorsMaps(TEST7, concreteImpl, abstractImpl);
+        Map<String, InterfaceInfo> interfaces = InterfaceScanner.scan(TEST7);
 
-        assertEquals(1, concreteImpl.get("Shape").size());
-        assertEquals(0, abstractImpl.get("Shape").size());
+        assertEquals(1, concrete(interfaces, "Shape"));
+        assertEquals(0, interfaces.get("Shape").abstractImplementations().size());
     }
 }

@@ -13,7 +13,7 @@ import json
 import sys
 from pathlib import Path
 
-from common import impl_total
+from common import children_of, has_implemented_descendant, impl_total
 
 COLUMNS = [
     "project",
@@ -32,20 +32,6 @@ COLUMNS = [
 ]
 
 
-def implemented_via_sub_interface(name: str, children: dict, implemented: set) -> bool:
-    """True if any interface extending `name`, directly or further down, has an implementation."""
-    stack, seen = list(children.get(name, [])), set()
-    while stack:
-        child = stack.pop()
-        if child in seen:
-            continue
-        seen.add(child)
-        if child in implemented:
-            return True
-        stack.extend(children.get(child, []))
-    return False
-
-
 def summarise(project_dir: Path) -> dict | None:
     json_path = project_dir / "output.json"
     csv_path = project_dir / "zero_impl_params.csv"
@@ -61,11 +47,8 @@ def summarise(project_dir: Path) -> dict | None:
     used = {r["interface"] for r in rows}
     lambda_ok = {r["interface"] for r in rows if r["lambdaCompatible"] == "true"}
     implemented = {i["name"] for i in interfaces if impl_total(i) > 0}
-    children = {}
-    for i in interfaces:
-        for parent in i["extendedInterfaces"]:
-            children.setdefault(parent, []).append(i["name"])
-    via_sub = {n for n in used if implemented_via_sub_interface(n, children, implemented)}
+    children = children_of(interfaces)
+    via_sub = {n for n in used if has_implemented_descendant(n, children, implemented)}
     anonymous = {r["interface"] for r in rows if int(r["anonymousClasses"]) > 0}
     via_anonymous = (used & anonymous) - via_sub
     via_lambda = (used & lambda_ok) - via_sub - via_anonymous

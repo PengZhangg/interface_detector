@@ -187,10 +187,8 @@ def save_per_project_rate(rows: list[dict], projects: list[dict], out: Path) -> 
     for p in projects:
         name = p["_project"]
         total = len(p["interfaces"])
-        if total == 0:
-            continue
         prows = by_project.get(name, [])
-        data.append((name, len(prows), len(prows) / total * 100))
+        data.append((name, len(prows), len(prows) / total * 100 if total else 0))
 
     data.sort(key=lambda d: d[2], reverse=True)
     names = [d[0] for d in data]

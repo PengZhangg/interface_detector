@@ -202,13 +202,10 @@ def save_methodless_bar_chart(all_rows: list[dict], projects: list[dict], out: P
     for p in projects:
         name = p["_project"]
         total = len(p["interfaces"])
-        if total == 0:
-            continue
         count = len(by_project.get(name, []))
-        rows.append((name, count, count / total * 100))
+        rows.append((name, count, count / total * 100 if total else 0))
 
     rows.sort(key=lambda r: r[1], reverse=True)
-    rows = [r for r in rows if r[1] > 0]
     names = [r[0] for r in rows]
     counts = [r[1] for r in rows]
     shares = [r[2] for r in rows]
@@ -245,15 +242,12 @@ def save_bar_chart(all_rows: list[dict], projects: list[dict], out: Path) -> Non
     for p in projects:
         name = p["_project"]
         total = len(p["interfaces"])
-        if total == 0:
-            continue
         prows = by_project.get(name, [])
         gp_count = len(prows)
         single_count = sum(1 for r in prows if r["isSingleImpl"])
-        rows.append((name, gp_count, single_count, gp_count / total * 100))
+        rows.append((name, gp_count, single_count, gp_count / total * 100 if total else 0))
 
     rows.sort(key=lambda r: r[1], reverse=True)
-    rows = [r for r in rows if r[1] > 0]
     names = [r[0] for r in rows]
     gp_counts = [r[1] for r in rows]
     single_counts = [r[2] for r in rows]

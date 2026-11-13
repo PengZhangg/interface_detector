@@ -7,16 +7,13 @@ Usage: python parameter_analysis.py <output-dir>
 interfacedetector.ParameterUsage). Writes, into <output-dir>/summary/:
   zero_impl_params_per_project.csv  one row per project
   zero_impl_params_per_project.md   the same as a markdown table
-  zero_impl_params_per_project.png  stacked bar chart
 """
 import csv
 import json
 import sys
 from pathlib import Path
 
-from common import PALETTE, impl_total
-from summary_analysis import grouped_bar_with_pct
-import matplotlib.pyplot as plt
+from common import impl_total
 
 COLUMNS = [
     "project",
@@ -93,22 +90,6 @@ def summarise(project_dir: Path) -> dict | None:
     }
 
 
-def save_chart(stats: list[dict], out: Path) -> None:
-    names = [s["project"] for s in stats]
-    used = [s["usedAsParamType"] for s in stats]
-    unused = [s["zeroImplInterfaces"] - s["usedAsParamType"] for s in stats]
-
-    fig, ax = plt.subplots(figsize=(max(14, len(names) * 0.3), 6))
-    grouped_bar_with_pct(ax, names, used, unused,
-                         "Used as a parameter type", "Never a parameter type",
-                         PALETTE["blue"], PALETTE["red"],
-                         "Zero-implementation interfaces")
-    fig.tight_layout()
-    fig.savefig(out / "zero_impl_params_per_project.png", dpi=160)
-    plt.close(fig)
-    print("  Saved zero_impl_params_per_project.png")
-
-
 def main() -> None:
     if len(sys.argv) != 2:
         print(__doc__)
@@ -136,7 +117,6 @@ def main() -> None:
         f.write("|" + "---|" * len(COLUMNS) + "\n")
         for s in stats + [totals]:
             f.write("| " + " | ".join(str(s[c]) for c in COLUMNS) + " |\n")
-    save_chart(stats, summary_dir)
     print(f"Parameter summary → {summary_dir}")
 
 

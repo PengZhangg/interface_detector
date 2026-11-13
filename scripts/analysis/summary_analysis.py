@@ -13,24 +13,33 @@ def grouped_bar_with_pct(ax, names, left_vals, right_vals, left_label, right_lab
     left_arr = np.array(left_vals, dtype=float)
     right_arr = np.array(right_vals, dtype=float)
     totals = left_arr + right_arr
+
+    order = np.argsort(-totals, kind="stable")
+    names = [names[i] for i in order]
+    left_arr, right_arr, totals = left_arr[order], right_arr[order], totals[order]
+
     left_pct = np.where(totals > 0, left_arr / totals * 100, 0)
     right_pct = np.where(totals > 0, right_arr / totals * 100, 0)
 
     x = np.arange(len(names))
     width = 0.6
 
-    # hide segments that would display as "0%"
+    # draw every non-zero segment; empty ones are skipped so no outline is drawn
+    left_bar = left_arr > 0
+    right_bar = right_arr > 0
+    ax.bar(x[left_bar], left_arr[left_bar], width, label=left_label,
+           color=left_spec["fill"], edgecolor=left_spec["edge"], linewidth=1.2)
+    ax.bar(x[right_bar], right_arr[right_bar], width,
+           bottom=left_arr[right_bar], label=right_label,
+           color=right_spec["fill"], edgecolor=right_spec["edge"], linewidth=1.2)
+
+    # hide labels that would display as "0%"
     MIN_PCT = 0.5
     left_mask = left_pct >= MIN_PCT
     right_mask = right_pct >= MIN_PCT
 
-    ax.bar(x[left_mask], left_arr[left_mask], width, label=left_label,
-                    color=left_spec["fill"], edgecolor=left_spec["edge"], linewidth=1.2)
-    ax.bar(x[right_mask], right_arr[right_mask], width,
-                    bottom=left_arr[right_mask], label=right_label,
-                    color=right_spec["fill"], edgecolor=right_spec["edge"], linewidth=1.2)
-
     ax.set_ylabel(ylabel)
+    ax.set_xlabel("Project (ordered by total, descending)")
     ax.set_xticks(x)
     ax.set_xticklabels(names, rotation=45, ha="right", fontsize=8)
     ax.set_xlim(-0.7, len(names) - 0.3)
@@ -137,29 +146,6 @@ def save_visibility_vs_impl_buckets(projects: list[dict], out: Path) -> None:
     print("  Saved visibility_vs_impl_buckets.png")
 
 
-def save_impl_count_distribution(projects: list[dict], out: Path) -> None:
-    counts = [impl_total(i) for p in projects for i in p["interfaces"]]
-
-    cap = min(max(counts, default=10), 30)
-    filtered = [c for c in counts if c <= cap]
-    excluded = len(counts) - len(filtered)
-
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.hist(filtered, bins=[i - 0.5 for i in range(0, cap + 2)],
-            color=DEFAULT["fill"], edgecolor=DEFAULT["edge"], linewidth=0.8)
-    ax.set_xlim(-0.5, cap + 0.5)
-    xlabel = "Number of implementations per interface"
-    if excluded:
-        xlabel += f"  ({excluded} interface(s) with >{cap} implementations not shown)"
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel("Number of interfaces")
-    ax.set_xticks(range(0, cap + 1))
-    fig.tight_layout()
-    fig.savefig(out / "impl_count_distribution.png", dpi=160)
-    plt.close(fig)
-    print("  Saved impl_count_distribution.png")
-
-
 def save_abstract_vs_concrete(projects: list[dict], out: Path) -> None:
     names, concrete_totals, abstract_totals = [], [], []
     for p in projects:
@@ -183,10 +169,8 @@ def save_exact_impl_per_project(projects: list[dict], out: Path, n: int,
     rows = []
     for p in projects:
         total = len(p["interfaces"])
-        if total == 0:
-            continue
         count = sum(1 for i in p["interfaces"] if impl_total(i) == n)
-        rows.append((p["_project"], count, count / total * 100))
+        rows.append((p["_project"], count, count / total * 100 if total else 0))
 
     rows.sort(key=lambda r: r[1], reverse=True)
     names = [r[0] for r in rows]
@@ -229,10 +213,8 @@ def save_exact_impl_pct_per_project(projects: list[dict], out: Path, n: int,
     rows = []
     for p in projects:
         total = len(p["interfaces"])
-        if total == 0:
-            continue
         count = sum(1 for i in p["interfaces"] if impl_total(i) == n)
-        rows.append((p["_project"], count, total, count / total * 100))
+        rows.append((p["_project"], count, total, count / total * 100 if total else 0))
 
     rows.sort(key=lambda r: r[3], reverse=True)
     names = [r[0] for r in rows]
@@ -311,7 +293,6 @@ def main() -> None:
 
     save_visibility_ratio(projects, summary_dir)
     save_visibility_vs_impl_buckets(projects, summary_dir)
-    save_impl_count_distribution(projects, summary_dir)
     save_abstract_vs_concrete(projects, summary_dir)
     save_size_vs_unimplemented(projects, summary_dir)
     save_exact_impl_per_project(projects, summary_dir, 0, "zero_impl_per_project.png", DEFAULT)

@@ -28,7 +28,6 @@ __pycache__/
 # Corpus and generated output
 programs/
 output.json
-references.json
 report.html
 *.png
 scripts/analysis/analysis/

@@ -32,8 +32,6 @@ This runs the full pipeline and writes everything to `output/<ProjectName>Output
 ├── output.json            # interfaces, implementations, visibility, extends, method counts
 ├── zero_impl_params.csv   # parameters typed with a zero-implementation interface
 ├── report.html            # HTML report (+ report.css)
-├── concrete_vs_abstract.png
-├── implementation_buckets.png
 └── errors.txt             # parse errors, if any
 ```
 
@@ -54,12 +52,4 @@ These run on a batch `output/` folder and also write to `output/summary/`:
 ```bash
 .venv/bin/python scripts/analysis/multi_impl_analysis.py <output-dir>   # interfaces with 2+ implementations
 .venv/bin/python scripts/analysis/pattern_analysis.py <output-dir>      # grandparent pattern, marker/constant interfaces
-```
-
-To see what still references each zero-implementation interface:
-
-```bash
-java -cp target/interfaceDetector-1.0-SNAPSHOT.jar interfacedetector.ReferenceAnalyzer \
-    <project-dir> <output.json> <refs-dir>/<project>.json
-.venv/bin/python scripts/analysis/reference_analysis.py <refs-dir> <out-dir>
 ```

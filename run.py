@@ -10,7 +10,6 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 JAR = SCRIPT_DIR / "target" / "interfaceDetector-1.0-SNAPSHOT.jar"
 REPORT_SCRIPT = SCRIPT_DIR / "scripts" / "generate_report" / "generate_report.py"
 REPORT_CSS_SRC = SCRIPT_DIR / "scripts" / "generate_report" / "report.css"
-ANALYSIS_SCRIPT = SCRIPT_DIR / "scripts" / "analysis" / "analysis.py"
 SUMMARY_SCRIPT = SCRIPT_DIR / "scripts" / "analysis" / "summary_analysis.py"
 PARAM_SUMMARY_SCRIPT = SCRIPT_DIR / "scripts" / "analysis" / "parameter_analysis.py"
 
@@ -40,9 +39,9 @@ def process_project(input_dir: Path, output_base: Path) -> None:
     )
     if result.stderr.strip():
         errors_out.write_text(result.stderr)
-        print(f"    [1/3] JSON  → {json_out} (errors → {errors_out})")
+        print(f"    [1/2] JSON  → {json_out} (errors → {errors_out})")
     else:
-        print(f"    [1/3] JSON  → {json_out}")
+        print(f"    [1/2] JSON  → {json_out}")
 
     # step 1b: parameters typed with a zero-implementation interface
     params_out = output_dir / "zero_impl_params.csv"
@@ -53,7 +52,7 @@ def process_project(input_dir: Path, output_base: Path) -> None:
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,  # parse errors are already in errors.txt
     )
-    print(f"    [1/3] Params → {params_out}")
+    print(f"    [1/2] Params → {params_out}")
 
     # step 2: generate HTML report
     html_out = output_dir / "report.html"
@@ -61,19 +60,10 @@ def process_project(input_dir: Path, output_base: Path) -> None:
         [PYTHON, str(REPORT_SCRIPT), str(json_out), str(html_out)],
         check=True,
     )
-    print(f"    [2/3] HTML  → {html_out}")
+    print(f"    [2/2] HTML  → {html_out}")
 
     # step 3: copy css
     shutil.copy2(REPORT_CSS_SRC, output_dir / "report.css")
-
-    # step 4: generate graphs
-    subprocess.run(
-        [PYTHON, str(ANALYSIS_SCRIPT), str(json_out), str(output_dir)],
-        check=True,
-    )
-    graphs = sorted(output_dir.glob("*.png"))
-    for g in graphs:
-        print(f"    [3/3] Graph → {g}")
 
     print(f"    Done! Output → {output_dir}\n")
 

@@ -42,6 +42,7 @@ public final class InterfaceInfo {
         return packageName;
     }
 
+    /** fully qualified names where resolvable, else name as written */
     public List<String> extendedInterfaces() {
         return extendedInterfaces;
     }

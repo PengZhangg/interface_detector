@@ -12,6 +12,10 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import com.github.javaparser.ast.CompilationUnit;
 
+/**
+ * Holds shared helpers: finding all .java files, making a parser, parsing a
+ * file, and getting a file's package and path.
+ */
 final class JavaSources {
 
     private JavaSources() {
@@ -27,6 +31,12 @@ final class JavaSources {
         }
     }
 
+    /**
+     * Parse a file and return its syntax tree, or empty if parsing fails
+     * @param strict if true, reject file with any problems
+     *               if false, keep whatever parser managed to read
+     * @param report if true, print an error message for rejected files
+     */
     static Optional<CompilationUnit> parse(JavaParser parser, Path file, boolean strict, boolean report) {
         Optional<CompilationUnit> unit;
         String reason = "";

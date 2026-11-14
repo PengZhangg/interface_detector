@@ -11,11 +11,6 @@ import com.github.javaparser.ast.body.RecordDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 
-/**
- * Finds every interface in a project and the classes, enums and records that
- * implement it. Works on syntax only, so names in implements/extends clauses
- * are matched to interfaces heuristically (see {@link #resolve}).
- */
 public final class InterfaceScanner {
 
     private final JavaParser parser = JavaSources.newParser();

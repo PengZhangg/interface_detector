@@ -12,7 +12,6 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ParserConfiguration.LanguageLevel;
 import com.github.javaparser.ast.CompilationUnit;
 
-/** Finding and parsing the .java files of a project. */
 final class JavaSources {
 
     private JavaSources() {
@@ -28,11 +27,6 @@ final class JavaSources {
         }
     }
 
-    /**
-     * Parses a file. With {@code strict}, a file with any parse or validation
-     * problem is rejected; otherwise any tree the parser produced is kept.
-     * Rejected files are reported on stderr when {@code report} is set.
-     */
     static Optional<CompilationUnit> parse(JavaParser parser, Path file, boolean strict, boolean report) {
         Optional<CompilationUnit> unit;
         String reason = "";

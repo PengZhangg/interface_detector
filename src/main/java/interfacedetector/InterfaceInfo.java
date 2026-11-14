@@ -5,7 +5,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** One interface declared in the scanned project, and the types that implement it. */
+/**
+ * One interface declared in the scanned project, and the types that implement
+ * it.
+ */
 public final class InterfaceInfo {
     private final String name;
     private final String filePath;
@@ -39,7 +42,6 @@ public final class InterfaceInfo {
         return packageName;
     }
 
-    /** Fully-qualified names where resolvable, otherwise the name as written. */
     public List<String> extendedInterfaces() {
         return extendedInterfaces;
     }
@@ -68,7 +70,7 @@ public final class InterfaceInfo {
         return concreteImplementations.isEmpty() && abstractImplementations.isEmpty();
     }
 
-    /** The interface's entry in output.json. */
+    /** output.json interface entry */
     Map<String, Object> toJson() {
         Map<String, Object> entry = new LinkedHashMap<>();
         entry.put("name", name);

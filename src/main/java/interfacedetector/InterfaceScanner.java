@@ -27,7 +27,6 @@ public final class InterfaceScanner {
     private InterfaceScanner() {
     }
 
-    /** Scans every .java file under {@code folder}; files that fail to parse are reported and skipped. */
     public static Map<String, InterfaceInfo> scan(Path folder) {
         List<Path> files;
         try {
@@ -37,7 +36,6 @@ public final class InterfaceScanner {
             return Map.of();
         }
         InterfaceScanner scanner = new InterfaceScanner();
-        // every interface must be known before implements clauses can be resolved
         for (Path file : files)
             JavaSources.parse(scanner.parser, file, true, true).ifPresent(scanner::collectInterfaces);
         scanner.resolveParents();
@@ -53,8 +51,6 @@ public final class InterfaceScanner {
             if (!decl.isInterface())
                 continue;
             String name = decl.getFullyQualifiedName().orElseGet(decl::getNameAsString);
-            // if a name is declared twice, the first file and visibility are kept but the
-            // parents and method count come from the last declaration
             InterfaceInfo info = interfaces.computeIfAbsent(name,
                     n -> new InterfaceInfo(n, filePath, visibilityOf(decl), pkg));
             simpleNameIndex.computeIfAbsent(decl.getNameAsString(), k -> new ArrayList<>()).add(name);
@@ -64,7 +60,6 @@ public final class InterfaceScanner {
         }
     }
 
-    /** Replaces each "extends" name as written with the qualified name it refers to, when resolvable. */
     private void resolveParents() {
         for (InterfaceInfo child : interfaces.values()) {
             List<String> resolved = new ArrayList<>();
@@ -83,7 +78,6 @@ public final class InterfaceScanner {
             if (!decl.isInterface())
                 addImplementations(decl, decl.getImplementedTypes(), decl.isAbstract(), pkg, filePath);
         }
-        // enums and records can never be abstract
         for (EnumDeclaration decl : cu.findAll(EnumDeclaration.class))
             addImplementations(decl, decl.getImplementedTypes(), false, pkg, filePath);
         for (RecordDeclaration decl : cu.findAll(RecordDeclaration.class))
@@ -103,12 +97,6 @@ public final class InterfaceScanner {
         }
     }
 
-    /**
-     * Maps a name written in an implements/extends clause to its qualified
-     * interface name. An ambiguous name falls back to a match in the same
-     * file, then the same package, else null. {@code excludeSelf} keeps an
-     * interface from resolving to itself when it extends a same-named interface.
-     */
     private String resolve(String written, String fromPackage, String fromFile, String excludeSelf) {
         String simple = written.substring(written.lastIndexOf('.') + 1);
         List<String> candidates = simpleNameIndex.getOrDefault(simple, List.of()).stream()
@@ -146,7 +134,6 @@ public final class InterfaceScanner {
             return "private";
         if (decl.isProtected())
             return "protected";
-        // members of an interface are implicitly public (JLS 9.5)
         boolean nestedInInterface = decl.findAncestor(ClassOrInterfaceDeclaration.class)
                 .map(ClassOrInterfaceDeclaration::isInterface)
                 .orElse(false);

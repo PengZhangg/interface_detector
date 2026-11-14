@@ -6,8 +6,6 @@ import java.util.*;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Writes every interface in a project, with its implementations, to JSON.
- *
  * Usage: App <scanDir> [output.json]
  */
 public class App {

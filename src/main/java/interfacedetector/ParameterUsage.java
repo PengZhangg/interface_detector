@@ -25,9 +25,6 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Lists method, constructor and record parameters whose type is a
- * zero-implementation interface from an App output.json.
- *
  * Usage: ParameterUsage <scanDir> <output.json> <zero_impl_params.csv>
  */
 public class ParameterUsage {
@@ -35,7 +32,6 @@ public class ParameterUsage {
     record Iface(String fqn, String simple, String pkg, String file, boolean topLevel,
             int abstractMethods, boolean extendsOthers, boolean functionalAnnotation) {
 
-        /** True if annotated @FunctionalInterface, or with exactly one own abstract method and no parents. */
         boolean lambdaCompatible() {
             return functionalAnnotation || (abstractMethods == 1 && !extendsOthers);
         }
@@ -75,13 +71,11 @@ public class ParameterUsage {
         System.out.println("Zero-implementation parameters: " + rows.size() + " → " + csvOut.toAbsolutePath());
     }
 
-    /** Also counts anonymous classes ({@code new Foo() { ... }}) per interface into {@code anonymousClasses}. */
     public static List<ParamRow> analyze(Path scanDir, Set<String> zeroImpl,
             Map<String, Integer> anonymousClasses) throws Exception {
         JavaParser parser = JavaSources.newParser();
         List<Path> javaFiles = JavaSources.list(scanDir);
 
-        // first pass: index interfaces (trees aren't kept, to save heap)
         Map<String, List<Iface>> bySimpleName = new HashMap<>();
         for (Path file : javaFiles) {
             CompilationUnit cu = JavaSources.parse(parser, file, false, true).orElse(null);
@@ -131,8 +125,7 @@ public class ParameterUsage {
         String ownerName = owner == null ? "?" : owner.getFullyQualifiedName().orElseGet(owner::getNameAsString);
 
         for (Parameter p : params) {
-            Type outer = p.getType().getElementType(); // unwrap arrays; varargs are already unwrapped
-            // each interface counts once per parameter, e.g. Map<Foo, Foo>
+            Type outer = p.getType().getElementType(); 
             Set<String> seen = new HashSet<>();
             for (ClassOrInterfaceType t : p.getType().findAll(ClassOrInterfaceType.class)) {
                 // skip "Outer" in "Outer.Inner"
@@ -152,7 +145,6 @@ public class ParameterUsage {
         }
     }
 
-    /** "self" when the interface takes itself as a parameter, else the kind of the declaring type. */
     private static String declaringKind(TypeDeclaration<?> owner, String ifaceFqn) {
         if (owner == null)
             return "unknown";
@@ -167,7 +159,6 @@ public class ParameterUsage {
         return "other";
     }
 
-    /** Abstract methods in the interface body, ignoring Object methods; -1 if any is generic. */
     static int countAbstractMethods(ClassOrInterfaceDeclaration decl) {
         int count = 0;
         for (MethodDeclaration m : decl.getMethods()) {
@@ -199,7 +190,6 @@ public class ParameterUsage {
         return names;
     }
 
-    /** Resolves by same file, explicit import, same package, then wildcard import; null if ambiguous. */
     static Iface resolve(String written, CompilationUnit cu, Map<String, List<Iface>> bySimpleName) {
         String simple = written.substring(written.lastIndexOf('.') + 1);
         List<Iface> candidates = bySimpleName.getOrDefault(simple, List.of());
@@ -228,7 +218,6 @@ public class ParameterUsage {
                 explicit.add(imp.getNameAsString());
         }
         if (!explicit.isEmpty()) {
-            // an explicit import shadows every other same-named interface
             List<Iface> imported = candidates.stream().filter(c -> explicit.contains(c.fqn())).toList();
             return imported.size() == 1 ? imported.get(0) : null;
         }
